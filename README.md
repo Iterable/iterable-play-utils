@@ -2,9 +2,11 @@
 
 Collection of utilites used by Iterable in Scala Play! projects. Built/tested with sbt 0.13.7, Scala 2.10, and Play! 2.2.2
 
-## Automatic Case Class Mappings
+## Automatic Case Class Mappings (via runtime reflection)
 
-See [com.iterable.play.utils.CaseClassMapping](https://github.com/Iterable/iterable-play-utils/blob/master/src/main/scala/com/iterable/play/utils/CaseClassMapping.scala). Uses ***runtime reflection*** to generate form mappings for case classes without all the manual typing. See [the tests](https://github.com/Iterable/iterable-play-utils/blob/master/src/test/scala/com/iterable/play/utils/CaseClassMappingSpec.scala) for sample usage.  
+See [com.iterable.play.utils.CaseClassMapping](https://github.com/Iterable/iterable-play-utils/blob/master/src/main/scala/com/iterable/play/utils/CaseClassMapping.scala). Uses ***runtime reflection*** to generate form mappings for case classes without all the manual typing. 
+ 
+***Once again, this uses runtime reflection, not compile-time macros.***
 
 Suppose you have the following case class:
 ```scala
@@ -53,3 +55,5 @@ object Foo {
   }
 }
 ```
+
+See [the tests](https://github.com/Iterable/iterable-play-utils/blob/master/src/test/scala/com/iterable/play/utils/CaseClassMappingSpec.scala) for more sample usage. 
