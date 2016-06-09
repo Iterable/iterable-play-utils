@@ -1,6 +1,6 @@
 # iterable-play-utils
 
-Collection of utilites used by Iterable in Scala Play! projects. Built/tested with sbt 0.13.7, Scala 2.10, and Play! 2.2.2
+Collection of utilites used by Iterable in Scala Play! projects. Built/tested with SBT 0.13.7, Scala 2.10.4, and Play! 2.2.2
 
 ## Automatic Case Class Mappings (via runtime reflection)
 
