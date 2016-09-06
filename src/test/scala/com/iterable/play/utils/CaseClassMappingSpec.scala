@@ -87,4 +87,3 @@ class CaseClassMappingSpec extends SpecLike with Mockito {
     }
   }
 }
-

@@ -54,10 +54,10 @@ object CaseClassMapping {
   }
 
   private def isCorrectFormatterOrMapping(tpe: Type, formatterType: Type): Boolean = {
-    Logger.trace(s"Checking if formatter type $formatterType is the right one for $tpe")
+//    Logger.trace(s"Checking if formatter type $formatterType is the right one for $tpe")
     if (typeIsFormatter(formatterType) || typeIsMapping(formatterType)) {
       // get the parameter type of the formatter/mapping
-      Logger.trace(s"Unwrapping formatter/mapping type $formatterType")
+//      Logger.trace(s"Unwrapping formatter/mapping type $formatterType")
       isCorrectFormatterOrMapping(tpe, getParameterType(formatterType).get)
     } else {
       formatterType =:= unwrappedType(tpe)
@@ -99,23 +99,29 @@ object CaseClassMapping {
   }
 
   // both getter accessors and nullary defs are of type NullaryMethodType
-  private def isFieldForMapping(method: MethodSymbol, tpe: Type) = method.typeSignature match {
+  private def isFieldForMapping(memberType: Type, forType: Type) = memberType match {
     case nullaryMethod: NullaryMethodType =>
       val fieldType = nullaryMethod.resultType
-      typeIsMapping(fieldType) && isCorrectFormatterOrMapping(tpe, fieldType)
+      typeIsMapping(fieldType) && isCorrectFormatterOrMapping(forType, fieldType)
     case _ => false
   }
 
   // given a Type, search its companion object for an implicit val or nullary def of a mapping of that Type
   private def getMappingFromCompanionOfType(tpe: Type): Option[Mapping[_]] = {
-    Logger.trace(s"Looking for mapping in companion of $tpe")
+//    Logger.trace(s"Looking for mapping in companion of $tpe")
     tpe.typeSymbol.companionSymbol match {
-      case NoSymbol => None
+      case NoSymbol =>
+//        Logger.trace(s"No companion symbol for type $tpe")
+        None
+
       case companion =>
-        companion.typeSignature.declarations.collectFirst {
+//        Logger.trace(s"Found companion symbol $companion for type $tpe")
+        // use .members, not .declarations; we want to include things that its super class might declare
+        val companionTypeSignature = companion.typeSignature
+        companionTypeSignature.members.collectFirst {
           // The generated getter is marked as implicit; but the actual underlying val is not implicit! So we check if the getter is implicit
           // In the case of an implicit val, the generated getter is a method; in the case of a nullary def... well it's already a method
-          case member: TermSymbol with MethodSymbol if member.isImplicit && isFieldForMapping(member, tpe) =>
+          case member: TermSymbol with MethodSymbol if member.isImplicit && isFieldForMapping(member.typeSignatureIn(companionTypeSignature), tpe) =>
             Logger.trace(s"Found a mapping in the companion object of $tpe, it's $member")
             getNullaryFieldFromCompanionObject(companion.asModule, member).asInstanceOf[Mapping[_]]
         }
@@ -137,7 +143,7 @@ object CaseClassMapping {
       }
     } match {
       case Some(mapping) => mapping
-      case None => throw new RuntimeException(s"Can't find an existing mapping for argument ${symbol.name.decoded} of type $tpe in class $tpeOfEnclosing! If this is a non-primitive type, make sure you have declared an implicit RequestToCaseClassReads in its companion object as a val or nullary def!")
+      case None => throw new RuntimeException(s"Can't find an existing mapping for argument ${symbol.name.decoded} of type $tpe in class $tpeOfEnclosing! If this is a non-primitive type, make sure you have declared an implicit Mapping in its companion object as a val or nullary def!")
     }
   }
 
@@ -145,6 +151,7 @@ object CaseClassMapping {
   // http://stackoverflow.com/questions/13814288/how-to-get-constructor-argument-names-using-scala-macros
   // http://stackoverflow.com/a/24100624
   def mapping[T <: Product : TypeTag]: CaseClassMapping[T] = {
+    Logger.trace(s"Generating CaseClassMapping for ${typeOf[T]}...")
     typeOf[T].declarations.collectFirst {
       case m: MethodSymbol if m.isPrimaryConstructor => m
     } match {
