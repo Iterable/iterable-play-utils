@@ -7,17 +7,17 @@ import play.api.data.{Form, FormError, Mapping}
 
 case class Baz(pls: String, work: Option[Long])
 object Baz {
-  implicit val fmt = CaseClassMapping.mapping[Baz]
+  implicit val mapping = CaseClassMapping.mapping[Baz]
 }
 
 case class Foo(a: String, omg: Option[Seq[Baz]])
 object Foo {
-  implicit def fmt = CaseClassMapping.mapping[Foo]
+  implicit def mapping = CaseClassMapping.mapping[Foo]
 }
 
-case class Bar(firstOne: Option[List[Long]], secondOne: String, third: Option[Foo], fourth: Option[Int])
+case class Bar(firstOne: Option[List[Long]], secondOne: String, third: Option[Foo], fourth: Option[Int]) extends UnbindableToWsRequest[Bar]
 object Bar {
-  implicit val fmt = CaseClassMapping.mapping[Bar]
+  implicit val mapping = CaseClassMapping.mapping[Bar]
 }
 
 class CaseClassMappingSpec extends SpecLike with Mockito {
