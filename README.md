@@ -8,8 +8,9 @@ See [com.iterable.play.utils.CaseClassMapping](https://github.com/Iterable/itera
  
 ***Once again, this uses runtime reflection, not compile-time macros.***
 
-***Please note that this suffers from thread safety issues in Scala 2.10, which is why the build includes `parallelExecution in Test := false`
-See [the relevant document from Scala](http://docs.scala-lang.org/overviews/reflection/thread-safety.html)***
+***Please note that this suffers from thread safety issues in Scala 2.10, which is why the build includes `parallelExecution in Test := false`***
+
+***See [the relevant document from Scala](http://docs.scala-lang.org/overviews/reflection/thread-safety.html)***
 
 Suppose you have the following case class:
 ```scala
