@@ -24,7 +24,7 @@ In order to use forms/mappings, you would normally do:
 ```scala
 val fooForm = Form(
   mapping(
-    "bar" -> nonEmptyText,
+    "bar" -> text,
     "baz" -> optional(longNumber)
   )(Foo.apply)(Foo.unapply)
 )
