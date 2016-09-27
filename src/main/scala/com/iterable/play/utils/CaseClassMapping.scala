@@ -12,7 +12,6 @@ trait CaseClassMapping[T] extends Mapping[T] {
 }
 
 object CaseClassMapping {
-  private val mirror = runtimeMirror(getClass.getClassLoader)
 
   private def getTypeOfFormatter[T: TypeTag](t: Formatter[T]) = typeOf[T]
   // TODO - build this by grabbing implicit val's and nullary implicit def's in format/Format
@@ -90,61 +89,12 @@ object CaseClassMapping {
   private def typeIsFormatter(tpe: Type) = tpe.erasure <:< typeOf[Formatter[Any]].erasure
   private def typeIsMapping(tpe: Type) = tpe.erasure <:< typeOf[Mapping[Any]].erasure
 
-  private def getInstanceOfCompanion(companion: ModuleSymbol) = mirror.reflectModule(companion).instance
-
-  private def getNullaryFieldFromCompanionObject(companion: ModuleSymbol, member: TermSymbol) = {
-    val m = mirror.reflect(getInstanceOfCompanion(companion))
-    // both the getter accessor and a nullary def are methods, so might as well just use reflectMethod
-    m.reflectMethod(member.asMethod).apply()
-  }
-
   // both getter accessors and nullary defs are of type NullaryMethodType
   private def isFieldForMapping(memberType: Type, forType: Type) = memberType match {
     case nullaryMethod: NullaryMethodType =>
       val fieldType = nullaryMethod.resultType
       typeIsMapping(fieldType) && isCorrectFormatterOrMapping(forType, fieldType)
     case _ => false
-  }
-
-  // given a Type, search its companion object for an implicit val or nullary def of a mapping of that Type
-  private def getMappingFromCompanionOfType(tpe: Type): Option[Mapping[_]] = {
-//    Logger.trace(s"Looking for mapping in companion of $tpe")
-    tpe.typeSymbol.companionSymbol match {
-      case NoSymbol =>
-//        Logger.trace(s"No companion symbol for type $tpe")
-        None
-
-      case companion =>
-//        Logger.trace(s"Found companion symbol $companion for type $tpe")
-        // use .members, not .declarations; we want to include things that its super class might declare
-        val companionTypeSignature = companion.typeSignature
-        companionTypeSignature.members.collectFirst {
-          // The generated getter is marked as implicit; but the actual underlying val is not implicit! So we check if the getter is implicit
-          // In the case of an implicit val, the generated getter is a method; in the case of a nullary def... well it's already a method
-          case member: TermSymbol with MethodSymbol if member.isImplicit && isFieldForMapping(member.typeSignatureIn(companionTypeSignature), tpe) =>
-            Logger.trace(s"Found a mapping in the companion object of $tpe, it's $member")
-            getNullaryFieldFromCompanionObject(companion.asModule, member).asInstanceOf[Mapping[_]]
-        }
-    }
-  }
-
-  // given a symbol, find a Mapping for its Type
-  private def getMappingForSymbol(symbol: Symbol, tpeOfEnclosing: Type): Mapping[_] = {
-    val paramName = symbol.name.toString // the name of the parameter
-    val realTpe = symbol.typeSignature // the parameter type
-    val tpe = unwrappedType(realTpe) // if the parameter is of type Seq/List/Option, unwrap the underlying type
-    Logger.trace(s"Looking for default formatter for type $realTpe (unwrapped $tpe)")
-    formatters.collectFirst { case (formatter, formatterType) if isCorrectFormatterOrMapping(tpe, formatterType) =>
-      generateWrappedMappingForFormatter(paramName, realTpe, formatter)
-    }.orElse {
-      Logger.trace(s"Unable to find default formatter for type $tpe; searching for companion object formatters")
-      getMappingFromCompanionOfType(tpe).map { mapping =>
-        generateWrappedMappingForMapping(paramName, realTpe, mapping)
-      }
-    } match {
-      case Some(mapping) => mapping
-      case None => throw new RuntimeException(s"Can't find an existing mapping for argument ${symbol.name.decoded} of type $tpe in class $tpeOfEnclosing! If this is a non-primitive type, make sure you have declared an implicit Mapping in its companion object as a val or nullary def!")
-    }
   }
 
   // http://docs.scala-lang.org/overviews/reflection/typetags-manifests.html
@@ -157,10 +107,7 @@ object CaseClassMapping {
     } match {
       case Some(primaryConstructor) =>
 //        Logger.trace(s"Found primary constructor! It's $primaryConstructor, and the params are ${primaryConstructor.paramss}")
-        // paramss returns a list of lists; if it's a nullary it's empty list, otherwise it's a 2d list (where first list just has one element)
-        // we don't care about the nullary case though, never going to have a case class with no arguments
-        val mappings = primaryConstructor.paramss.flatten.map(getMappingForSymbol(_, typeOf[T]))
-        val result = CaseClassMappingImpl[T](primaryConstructor, mappings)
+        val result = CaseClassMappingImpl[T](primaryConstructor)
         Logger.trace(s"Done generating CaseClassMapping for ${typeOf[T]}")
         result
 
@@ -170,7 +117,62 @@ object CaseClassMapping {
   }
 
   // representation of a Mapping for a case class. It stores the constructor, and an (in-order) seq of mappings for the constructor params
-  private case class CaseClassMappingImpl[T <: Product : TypeTag](constructor: MethodSymbol, mappings: Seq[Mapping[_]], key: String = "", constraints: Seq[Constraint[T]] = Nil) extends CaseClassMapping[T] {
+  private case class CaseClassMappingImpl[T <: Product : TypeTag](constructor: MethodSymbol, key: String = "", constraints: Seq[Constraint[T]] = Nil) extends CaseClassMapping[T] {
+    private val mirror = typeTag[T].mirror
+
+    private def getInstanceOfCompanion(companion: ModuleSymbol) = mirror.reflectModule(companion).instance
+
+    private def getNullaryFieldFromCompanionObject(companion: ModuleSymbol, member: TermSymbol) = {
+      val m = mirror.reflect(getInstanceOfCompanion(companion))
+      // both the getter accessor and a nullary def are methods, so might as well just use reflectMethod
+      m.reflectMethod(member.asMethod).apply()
+    }
+
+    // given a Type, search its companion object for an implicit val or nullary def of a mapping of that Type
+    private def getMappingFromCompanionOfType(tpe: Type): Option[Mapping[_]] = {
+//      Logger.trace(s"Looking for mapping in companion of $tpe")
+      tpe.typeSymbol.companionSymbol match {
+        case NoSymbol =>
+//          Logger.trace(s"No companion symbol for type $tpe")
+          None
+
+        case companion =>
+//          Logger.trace(s"Found companion symbol $companion for type $tpe")
+          // use .members, not .declarations; we want to include things that its super class might declare
+          val companionTypeSignature = companion.typeSignature
+          companionTypeSignature.members.collectFirst {
+            // The generated getter is marked as implicit; but the actual underlying val is not implicit! So we check if the getter is implicit
+            // In the case of an implicit val, the generated getter is a method; in the case of a nullary def... well it's already a method
+            case member: TermSymbol with MethodSymbol if member.isImplicit && isFieldForMapping(member.typeSignatureIn(companionTypeSignature), tpe) =>
+              Logger.trace(s"Found a mapping in the companion object of $tpe, it's $member")
+              getNullaryFieldFromCompanionObject(companion.asModule, member).asInstanceOf[Mapping[_]]
+          }
+      }
+    }
+
+    // given a symbol, find a Mapping for its Type
+    private def getMappingForSymbol(symbol: Symbol, tpeOfEnclosing: Type): Mapping[_] = {
+      val paramName = symbol.name.toString // the name of the parameter
+      val realTpe = symbol.typeSignature // the parameter type
+      val tpe = unwrappedType(realTpe) // if the parameter is of type Seq/List/Option, unwrap the underlying type
+      Logger.trace(s"Looking for default formatter for type $realTpe (unwrapped $tpe)")
+      formatters.collectFirst { case (formatter, formatterType) if isCorrectFormatterOrMapping(tpe, formatterType) =>
+        generateWrappedMappingForFormatter(paramName, realTpe, formatter)
+      }.orElse {
+        Logger.trace(s"Unable to find default formatter for type $tpe; searching for companion object formatters")
+        getMappingFromCompanionOfType(tpe).map { mapping =>
+          generateWrappedMappingForMapping(paramName, realTpe, mapping)
+        }
+      } match {
+        case Some(mapping) => mapping
+        case None => throw new RuntimeException(s"Can't find an existing mapping for argument ${symbol.name.decoded} of type $tpe in class $tpeOfEnclosing! If this is a non-primitive type, make sure you have declared an implicit Mapping in its companion object as a val or nullary def!")
+      }
+    }
+
+    // paramss returns a list of lists; if it's a nullary it's empty list, otherwise it's a 2d list (where first list just has one element)
+    // we don't care about the nullary case though, never going to have a case class with no arguments
+    val mappings = constructor.paramss.flatten.map(getMappingForSymbol(_, typeOf[T]))
+
     private val constructorMirror = {
       val classSymbol = typeOf[T].typeSymbol.asClass
       val classMirror = mirror.reflectClass(classSymbol)
@@ -179,7 +181,7 @@ object CaseClassMapping {
 
     private def createInstance(constructor: MethodSymbol, args: Seq[Any]): T = {
       Logger.trace(s"Creating a ${typeOf[T]} with arguments: $args")
-      constructorMirror(args:_*).asInstanceOf[T]
+      constructorMirror(args: _*).asInstanceOf[T]
     }
 
     def bind(data: Map[String, String]): Either[Seq[FormError], T] = {
@@ -205,7 +207,7 @@ object CaseClassMapping {
 
     // override this to use the Constraint name if there's no key (which happens because we can't get to the individual mapping for the fields)
     override protected def collectErrors(t: T): Seq[FormError] = {
-      constraints.map { c => c -> c(t)}.collect {
+      constraints.map { c => c -> c(t) }.collect {
         case (c, Invalid(errors)) => c -> errors
       }.flatMap { case (c, ves) => ves.map(ve => FormError(if (key.nonEmpty) key else c.name.getOrElse(""), ve.message, ve.args)) }
     }
