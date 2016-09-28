@@ -165,13 +165,13 @@ object CaseClassMapping {
         }
       } match {
         case Some(mapping) => mapping
-        case None => throw new RuntimeException(s"Can't find an existing mapping for argument ${symbol.name.decoded} of type $tpe in class $tpeOfEnclosing! If this is a non-primitive type, make sure you have declared an implicit Mapping in its companion object as a val or nullary def!")
+        case None => throw new RuntimeException(s"Can't find an existing mapping for argument ${symbol.name.decodedName.toString} of type $tpe in class $tpeOfEnclosing! If this is a non-primitive type, make sure you have declared an implicit Mapping in its companion object as a val or nullary def!")
       }
     }
 
     // paramss returns a list of lists; if it's a nullary it's empty list, otherwise it's a 2d list (where first list just has one element)
     // we don't care about the nullary case though, never going to have a case class with no arguments
-    val mappings = constructor.paramss.flatten.map(getMappingForSymbol(_, typeOf[T]))
+    val mappings = constructor.paramLists.flatten.map(getMappingForSymbol(_, typeOf[T]))
 
     private val constructorMirror = {
       val classSymbol = typeOf[T].typeSymbol.asClass
