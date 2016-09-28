@@ -61,7 +61,7 @@ class CaseClassMappingSpec extends SpecLike with Mockito {
       val res = Form(implicitly[Mapping[Bar]]).bindFromRequest(request)
       val expectedBar = Bar(Some(List(17, 19)), "lulz", Some(Foo("it's an b!", Some(Seq(Baz("and even the omg", Some(666)), Baz("what happens", Some(777)))))), Some(1231))
       assert(res.get == expectedBar)
-      val (unbound, unboundErrors) = implicitly[Mapping[Bar]].unbind(expectedBar)
+      val (unbound, unboundErrors) = implicitly[Mapping[Bar]].unbindAndValidate(expectedBar)
       assert(unboundErrors == Nil)
       assert(unbound == expectedUnbound)
     }
@@ -81,7 +81,7 @@ class CaseClassMappingSpec extends SpecLike with Mockito {
       val expectedError = FormError("Baz.pls", "error.minLength", Seq(5))
       assert(res.errors.head == expectedError)
       val invalidBaz = Baz("foo", Some(7))
-      val (unbound, unboundErrors) = mappingWithConstraint.unbind(invalidBaz)
+      val (unbound, unboundErrors) = mappingWithConstraint.unbindAndValidate(invalidBaz)
       assert(unboundErrors.head == expectedError)
       // TODO - should unbound be empty when there are errors? or should it have the unbound data anyways?
     }
