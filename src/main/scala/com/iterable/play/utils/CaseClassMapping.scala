@@ -143,7 +143,7 @@ object CaseClassMapping {
           companionTypeSignature.members.collectFirst {
             // The generated getter is marked as implicit; but the actual underlying val is not implicit! So we check if the getter is implicit
             // In the case of an implicit val, the generated getter is a method; in the case of a nullary def... well it's already a method
-            case member: TermSymbol with MethodSymbol if member.isImplicit && isFieldForMapping(member.typeSignatureIn(companionTypeSignature), tpe) =>
+            case member: MethodSymbol if member.isImplicit && isFieldForMapping(member.typeSignatureIn(companionTypeSignature), tpe) =>
               Logger.trace(s"Found a mapping in the companion object of $tpe, it's $member")
               getNullaryFieldFromCompanionObject(companion.asModule, member).asInstanceOf[Mapping[_]]
           }
