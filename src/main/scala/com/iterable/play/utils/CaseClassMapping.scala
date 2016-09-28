@@ -8,7 +8,7 @@ import play.api.data.validation.{Constraint, Invalid}
 import scala.reflect.runtime.universe._
 
 trait CaseClassMapping[T] extends Mapping[T] {
-  def unbindToWsRequest(value: T): Map[String, Seq[String]] = unbind(value)._1.mapValues(Seq(_))
+  def unbindToWsRequest(value: T): Map[String, Seq[String]] = unbind(value).mapValues(Seq(_))
 }
 
 object CaseClassMapping {
@@ -102,7 +102,7 @@ object CaseClassMapping {
   // http://stackoverflow.com/a/24100624
   def mapping[T <: Product : TypeTag]: CaseClassMapping[T] = {
     Logger.trace(s"Generating CaseClassMapping for ${typeOf[T]}...")
-    typeOf[T].declarations.collectFirst {
+    typeOf[T].decls.collectFirst {
       case m: MethodSymbol if m.isPrimaryConstructor => m
     } match {
       case Some(primaryConstructor) =>
@@ -131,7 +131,7 @@ object CaseClassMapping {
     // given a Type, search its companion object for an implicit val or nullary def of a mapping of that Type
     private def getMappingFromCompanionOfType(tpe: Type): Option[Mapping[_]] = {
 //      Logger.trace(s"Looking for mapping in companion of $tpe")
-      tpe.typeSymbol.companionSymbol match {
+      tpe.typeSymbol.companion match {
         case NoSymbol =>
 //          Logger.trace(s"No companion symbol for type $tpe")
           None
@@ -194,9 +194,11 @@ object CaseClassMapping {
       }
     }
 
-    def unbind(value: T): (Map[String, String], Seq[FormError]) = {
+    def unbind(value: T): Map[String, String] = unbindAndValidate(value)._1
+
+    def unbindAndValidate(value: T): (Map[String, String], Seq[FormError]) = {
       val args = mappings.zip(value.productIterator.toIterable).map { case (mapping, field) =>
-        mapping.asInstanceOf[Mapping[Any]].withPrefix(key).unbind(field)
+        mapping.asInstanceOf[Mapping[Any]].withPrefix(key).unbindAndValidate(field)
       }
       val errors = args.flatMap(_._2) ++ collectErrors(value)
       args.flatMap(_._1.toSeq).toMap -> errors

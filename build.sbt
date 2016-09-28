@@ -4,17 +4,18 @@ version := "1.0.1"
 
 organization := "com.iterable"
 
-scalaVersion := "2.10.4"
+scalaVersion := "2.11.7"
 
 libraryDependencies ++= Seq(
   // Play! framework
-  "com.typesafe.play" %% "play" % "2.2.2",
+  "com.typesafe.play" %% "play" % "2.4.8",
 
   // dependencies for tests
   "org.scalatest" %% "scalatest" % "2.1.5" % Test,
   "org.specs2" %% "specs2-mock" % "3.8.3" % Test
 )
 
+scalacOptions in ThisBuild ++= Seq("-unchecked", "-deprecation")
 scalacOptions in Test ++= Seq("-Yrangepos")
 
 parallelExecution in Test := false
