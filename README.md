@@ -11,6 +11,9 @@ libraryDependencies += "com.iterable" % "iterableplayutils_2.10" % "1.0"
 
 All builds can be found on [Maven](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.iterable%22%20a%3A%22iterableplayutils_2.10%22)
 
+For Scala 2.10, use version 1.0.1
+For Scala 2.11, use version 1.1.0+
+
 ## Automatic Case Class Mappings (via runtime reflection)
 
 See [com.iterable.play.utils.CaseClassMapping](https://github.com/Iterable/iterable-play-utils/blob/master/src/main/scala/com/iterable/play/utils/CaseClassMapping.scala). Uses ***runtime reflection*** to generate form mappings for case classes without all the manual typing. 
