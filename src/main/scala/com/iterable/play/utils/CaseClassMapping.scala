@@ -8,7 +8,7 @@ import play.api.data.validation.{Constraint, Invalid}
 import scala.reflect.runtime.universe._
 
 trait CaseClassMapping[T] extends Mapping[T] {
-  def unbindToWsRequest(value: T): Map[String, Seq[String]] = unbind(value)._1.mapValues(Seq(_))
+  def unbindToWsRequest(value: T): Map[String, Seq[String]] = unbind(value).mapValues(Seq(_))
 }
 
 object CaseClassMapping {
@@ -194,9 +194,11 @@ object CaseClassMapping {
       }
     }
 
-    def unbind(value: T): (Map[String, String], Seq[FormError]) = {
+    def unbind(value: T): Map[String, String] = unbindAndValidate(value)._1
+
+    def unbindAndValidate(value: T): (Map[String, String], Seq[FormError]) = {
       val args = mappings.zip(value.productIterator.toIterable).map { case (mapping, field) =>
-        mapping.asInstanceOf[Mapping[Any]].withPrefix(key).unbind(field)
+        mapping.asInstanceOf[Mapping[Any]].withPrefix(key).unbindAndValidate(field)
       }
       val errors = args.flatMap(_._2) ++ collectErrors(value)
       args.flatMap(_._1.toSeq).toMap -> errors
