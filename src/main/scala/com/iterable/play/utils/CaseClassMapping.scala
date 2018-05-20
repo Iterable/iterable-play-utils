@@ -2,7 +2,7 @@ package com.iterable.play.utils
 
 import play.api.Logger
 import play.api.data._
-import play.api.data.format.{Formats, Formatter}
+import play.api.data.format.{Formats, Formatter, JodaFormats}
 import play.api.data.validation.{Constraint, Invalid}
 
 import scala.reflect.runtime.universe._
@@ -13,20 +13,20 @@ trait CaseClassMapping[T] extends Mapping[T] {
 
 object CaseClassMapping {
 
-  private def getTypeOfFormatter[T: TypeTag](t: Formatter[T]) = typeOf[T]
+  private def formatterToType[T: TypeTag](t: Formatter[T]) = t -> typeOf[T]
   // TODO - build this by grabbing implicit val's and nullary implicit def's in format/Format
   private val formatters = Seq(
-    Formats.stringFormat -> getTypeOfFormatter(Formats.stringFormat),
-    Formats.longFormat -> getTypeOfFormatter(Formats.longFormat),
-    Formats.intFormat -> getTypeOfFormatter(Formats.intFormat),
-    Formats.floatFormat -> getTypeOfFormatter(Formats.floatFormat),
-    Formats.doubleFormat -> getTypeOfFormatter(Formats.doubleFormat),
-    Formats.bigDecimalFormat -> getTypeOfFormatter(Formats.bigDecimalFormat),
-    Formats.booleanFormat -> getTypeOfFormatter(Formats.booleanFormat),
-    Formats.dateFormat -> getTypeOfFormatter(Formats.dateFormat),
-    Formats.sqlDateFormat -> getTypeOfFormatter(Formats.sqlDateFormat),
-    Formats.jodaDateTimeFormat -> getTypeOfFormatter(Formats.jodaDateTimeFormat),
-    Formats.jodaLocalDateFormat -> getTypeOfFormatter(Formats.jodaLocalDateFormat)
+    formatterToType(Formats.stringFormat),
+    formatterToType(Formats.longFormat),
+    formatterToType(Formats.intFormat),
+    formatterToType(Formats.floatFormat),
+    formatterToType(Formats.doubleFormat),
+    formatterToType(Formats.bigDecimalFormat),
+    formatterToType(Formats.booleanFormat),
+    formatterToType(Formats.dateFormat),
+    formatterToType(Formats.sqlDateFormat),
+    formatterToType(JodaFormats.jodaDateTimeFormat),
+    formatterToType(JodaFormats.jodaLocalDateFormat)
   )
 
   // http://stackoverflow.com/questions/12842729/finding-type-parameters-via-reflection-in-scala-2-10
@@ -36,7 +36,7 @@ object CaseClassMapping {
       case x :: Nil =>
         Some(x)
 
-      case x :: remaining =>
+      case _ :: _ =>
         throw new RuntimeException(s"Sorry, I can't work on stuff that requires two types")
 
       case _ =>
@@ -100,7 +100,7 @@ object CaseClassMapping {
   // http://docs.scala-lang.org/overviews/reflection/typetags-manifests.html
   // http://stackoverflow.com/questions/13814288/how-to-get-constructor-argument-names-using-scala-macros
   // http://stackoverflow.com/a/24100624
-  def mapping[T <: Product : TypeTag]: CaseClassMapping[T] = {
+  def mapping[T <: Product: TypeTag]: CaseClassMapping[T] = {
     Logger.trace(s"Generating CaseClassMapping for ${typeOf[T]}...")
     typeOf[T].decls.collectFirst {
       case m: MethodSymbol if m.isPrimaryConstructor => m
@@ -117,7 +117,11 @@ object CaseClassMapping {
   }
 
   // representation of a Mapping for a case class. It stores the constructor, and an (in-order) seq of mappings for the constructor params
-  private case class CaseClassMappingImpl[T <: Product : TypeTag](constructor: MethodSymbol, key: String = "", constraints: Seq[Constraint[T]] = Nil) extends CaseClassMapping[T] {
+  private case class CaseClassMappingImpl[T <: Product: TypeTag](
+    constructor: MethodSymbol,
+    key: String = "",
+    constraints: Seq[Constraint[T]] = Nil
+  ) extends CaseClassMapping[T] {
     private val mirror = typeTag[T].mirror
 
     private def getInstanceOfCompanion(companion: ModuleSymbol) = mirror.reflectModule(companion).instance
@@ -163,10 +167,9 @@ object CaseClassMapping {
         getMappingFromCompanionOfType(tpe).map { mapping =>
           generateWrappedMappingForMapping(paramName, realTpe, mapping)
         }
-      } match {
-        case Some(mapping) => mapping
-        case None => throw new RuntimeException(s"Can't find an existing mapping for argument ${symbol.name.decodedName.toString} of type $tpe in class $tpeOfEnclosing! If this is a non-primitive type, make sure you have declared an implicit Mapping in its companion object as a val or nullary def!")
-      }
+      }.getOrElse(
+        throw new RuntimeException(s"Can't find an existing mapping for argument ${symbol.name.decodedName.toString} of type $tpe in class $tpeOfEnclosing! If this is a non-primitive type, make sure you have declared an implicit Mapping in its companion object as a val or nullary def!")
+      )
     }
 
     // paramss returns a list of lists; if it's a nullary it's empty list, otherwise it's a 2d list (where first list just has one element)
@@ -179,7 +182,7 @@ object CaseClassMapping {
       classMirror.reflectConstructor(constructor)
     }
 
-    private def createInstance(constructor: MethodSymbol, args: Seq[Any]): T = {
+    private def createInstance(args: Seq[Any]): T = {
       Logger.trace(s"Creating a ${typeOf[T]} with arguments: $args")
       constructorMirror(args: _*).asInstanceOf[T]
     }
@@ -188,7 +191,7 @@ object CaseClassMapping {
       Logger.trace(s"Binding to type ${typeOf[T]}: $data")
       val args = mappings.map(_.withPrefix(key).bind(data))
       if (args.forall(_.isRight)) {
-        applyConstraints(createInstance(constructor, args.map(_.right.get)))
+        applyConstraints(createInstance(args.map(_.right.get)))
       } else {
         Left(args.collect { case Left(errors) => errors }.flatten)
       }
@@ -211,7 +214,9 @@ object CaseClassMapping {
     override protected def collectErrors(t: T): Seq[FormError] = {
       constraints.map { c => c -> c(t) }.collect {
         case (c, Invalid(errors)) => c -> errors
-      }.flatMap { case (c, ves) => ves.map(ve => FormError(if (key.nonEmpty) key else c.name.getOrElse(""), ve.message, ve.args)) }
+      }.flatMap {
+        case (c, ves) => ves.map(ve => FormError(if (key.nonEmpty) key else c.name.getOrElse(""), ve.message, ve.args))
+      }
     }
   }
 }
