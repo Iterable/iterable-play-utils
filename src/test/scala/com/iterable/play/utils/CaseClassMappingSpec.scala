@@ -1,7 +1,7 @@
 package com.iterable.play.utils
 
-import org.scalatest.SpecLike
-import org.specs2.mock.Mockito
+import org.scalatest.mockito.MockitoSugar
+import org.scalatest.{MustMatchers, WordSpec}
 import play.api.data.validation._
 import play.api.data.{Form, FormError, Mapping}
 
@@ -20,7 +20,7 @@ object Bar {
   implicit val mapping = CaseClassMapping.mapping[Bar]
 }
 
-class CaseClassMappingSpec extends SpecLike with Mockito {
+class CaseClassMappingSpec extends WordSpec with MustMatchers with MockitoSugar {
   // TODO - it breaks on this, because
   //   scala.ScalaReflectionException: class Bar2 is an inner class, use reflectClass on an InstanceMirror to obtain its ClassMirror
   case class Bar2(firstOne: Int)
@@ -28,15 +28,15 @@ class CaseClassMappingSpec extends SpecLike with Mockito {
     implicit lazy val mapping = CaseClassMapping.mapping[Bar2]
   }
 
-  object `CaseClassMapping ` {
-    def `should not work for inner classes` {
+  "CaseClassMapping" should {
+    "not work for inner classes" in {
       val e = intercept[ScalaReflectionException] {
         Bar2.mapping
       }
-      assert(e.msg == "class Bar2 is an inner class, use reflectClass on an InstanceMirror to obtain its ClassMirror")
+      e.msg mustBe "class Bar2 is an inner class, use reflectClass on an InstanceMirror to obtain its ClassMirror"
     }
 
-    def `should work for ints, longs, options of those, and seqs of those` {
+    "work for ints, longs, options of those, and seqs of those" in {
       val request = Map(
         "firstOne[]" -> List(17.toString, 19.toString),
         "secondOne" -> List("lulz"),
@@ -60,13 +60,13 @@ class CaseClassMappingSpec extends SpecLike with Mockito {
       )
       val res = Form(implicitly[Mapping[Bar]]).bindFromRequest(request)
       val expectedBar = Bar(Some(List(17, 19)), "lulz", Some(Foo("it's an b!", Some(Seq(Baz("and even the omg", Some(666)), Baz("what happens", Some(777)))))), Some(1231))
-      assert(res.get == expectedBar)
+      res.get mustEqual expectedBar
       val (unbound, unboundErrors) = implicitly[Mapping[Bar]].unbindAndValidate(expectedBar)
-      assert(unboundErrors == Nil)
-      assert(unbound == expectedUnbound)
+      unboundErrors mustBe empty
+      unbound mustEqual expectedUnbound
     }
 
-    def `should fail if constraints aren't met` {
+    "fail if constraints aren't met" in {
       val request = Map(
         "pls" -> List("foo"),
         "work" -> List(7.toString)
@@ -79,10 +79,10 @@ class CaseClassMappingSpec extends SpecLike with Mockito {
       }
       val res = Form(mappingWithConstraint).bindFromRequest(request)
       val expectedError = FormError("Baz.pls", "error.minLength", Seq(5))
-      assert(res.errors.head == expectedError)
+      res.errors.head mustEqual expectedError
       val invalidBaz = Baz("foo", Some(7))
-      val (unbound, unboundErrors) = mappingWithConstraint.unbindAndValidate(invalidBaz)
-      assert(unboundErrors.head == expectedError)
+      val (_, unboundErrors) = mappingWithConstraint.unbindAndValidate(invalidBaz)
+      unboundErrors.head mustEqual expectedError
       // TODO - should unbound be empty when there are errors? or should it have the unbound data anyways?
     }
   }

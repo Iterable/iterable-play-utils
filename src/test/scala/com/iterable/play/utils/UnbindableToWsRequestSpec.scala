@@ -1,17 +1,18 @@
 package com.iterable.play.utils
 
-import org.scalatest.SpecLike
-import org.specs2.mock.Mockito
+import org.scalatest.mockito.MockitoSugar
+import org.scalatest.MustMatchers
+import org.scalatest.WordSpec
 
 case class User(name: String, age: Int, email: String, favoriteBands: Seq[String]) extends UnbindableToWsRequest[User]
 object User {
     implicit val mapping = CaseClassMapping.mapping[User]
 }
 
-class UnbindableToWsRequestSpec extends SpecLike with Mockito {
+class UnbindableToWsRequestSpec extends WordSpec with MustMatchers with MockitoSugar {
 
-  object `UnbindableToWsRequest ` {
-    def `should be able to unbind a case class which has a Mapping` {
+  "UnbindableToWsRequest" should {
+    "be able to unbind a case class which has a Mapping" in {
       val thing = Bar(
         firstOne = Some(List(17, 19)),
         secondOne = "lulz",
@@ -35,11 +36,10 @@ class UnbindableToWsRequestSpec extends SpecLike with Mockito {
         "third.omg[1].work" -> List(777.toString),
         "fourth" -> List(1231.toString)
       )
-      val res = thing.unbindToWsRequest
-      assert(res == expectedUnbound)
+      thing.unbindToWsRequest mustEqual expectedUnbound
     }
 
-    def `example from README works`: Unit = {
+    "work on example from README" in {
       val user = User(name = "ilya", age = 9001, email = "ilya at iterable dot com", favoriteBands = Seq("Judas Priest", "Accept"))
       val expectedUnbound = Map(
         "name" -> Seq("ilya"),
@@ -48,8 +48,7 @@ class UnbindableToWsRequestSpec extends SpecLike with Mockito {
         "favoriteBands[0]" -> Seq("Judas Priest"),
         "favoriteBands[1]" -> Seq("Accept")
       )
-      val res = user.unbindToWsRequest
-      assert(res == expectedUnbound)
+      user.unbindToWsRequest mustEqual expectedUnbound
     }
   }
 }
