@@ -1,28 +1,31 @@
 # iterable-play-utils
 
-Collection of utilites used by Iterable in Scala Play! projects
+[![Travis CI](https://travis-ci.org/Iterable/iterable-play-utils.svg?branch=master)](https://travis-ci.org/Iterable/iterable-play-utils) [![Maven](https://img.shields.io/maven-central/v/com.iterable/iterableplayutils_2.12.svg)](https://mvnrepository.com/artifact/com.iterable/iterableplayutils)
+
+A collection of utilites used by Iterable in Scala Play! projects.
 
 ## Adding to your SBT project
 
-Include it in your dependencies:
+The latest version supports Play 2.6.x. To include it in your dependencies:
+
 ```scala
-libraryDependencies += "com.iterable" %% "iterableplayutils" % "1.1.0"
+libraryDependencies += "com.iterable" %% "iterableplayutils" % "2.0.0"
 ```
 
-All builds can be found on [Maven](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22com.iterable%22%20a%3A%22iterableplayutils_2.10%22)
+All versions can be found on [maven central](https://mvnrepository.com/artifact/com.iterable/iterableplayutils).
+
 
 Version | Scala version | Play! version
 --- | --- | ---
-1.0.1 | 2.10.4 | 2.2.2
-1.1.0 | 2.11.7 | 2.4.8
-
-For Scala 2.10, use version 1.0.1
-For Scala 2.11, use version 1.1.0 or higher
+2.0.0 | 2.12.x/2.11.x | 2.6.x
+1.1.1 | 2.11.x | 2.5.x
+1.1.0 | 2.11.x | 2.4.x
+1.0.1 | 2.10.x | 2.2.x
 
 ## Automatic Case Class Mappings (via runtime reflection)
 
-See [com.iterable.play.utils.CaseClassMapping](https://github.com/Iterable/iterable-play-utils/blob/master/src/main/scala/com/iterable/play/utils/CaseClassMapping.scala). Uses ***runtime reflection*** to generate form mappings for case classes without all the manual typing. 
- 
+See [com.iterable.play.utils.CaseClassMapping](https://github.com/Iterable/iterable-play-utils/blob/master/src/main/scala/com/iterable/play/utils/CaseClassMapping.scala). Uses ***runtime reflection*** to generate form mappings for case classes without all the manual typing.
+
 ***Once again, this uses runtime reflection, not compile-time macros.***
 
 ***Please note that this suffers from thread safety issues in Scala 2.10, which is why the build includes `parallelExecution in Test := false`***
@@ -47,7 +50,7 @@ val fooForm = Form(
 )
 ```
 
-This works fine, but it can get very cumbersome if your case classes take many parameters. It's also difficult to keep track of things if you rename the various arguments. `CaseClassMapping` seeks to take care of this by automatically generating a `Mapping[T]` for your case class `T`. In order to use it, any non-standard types that your case class uses must expose an `implicit Mapping[T]` of that type in their companion object; additionally, that mapping must be either a `nullary def` or a `val`. 
+This works fine, but it can get very cumbersome if your case classes take many parameters. It's also difficult to keep track of things if you rename the various arguments. `CaseClassMapping` seeks to take care of this by automatically generating a `Mapping[T]` for your case class `T`. In order to use it, any non-standard types that your case class uses must expose an `implicit Mapping[T]` of that type in their companion object; additionally, that mapping must be either a `nullary def` or a `val`.
 
 For example, to create a form for our example `case class Foo`, you can do:
 ```scala
@@ -117,9 +120,9 @@ Specifically, note that `favoriteBands` is unbound as
     "favoriteBands[1]" -> Seq("Accept")
 ```
 
-instead of 
+instead of
 ```scala
     "favoriteBands" -> Seq("Judas Priest", "Accept")
 ```
 
-See [the tests](https://github.com/Iterable/iterable-play-utils/blob/master/src/test/scala/com/iterable/play/utils/CaseClassMappingSpec.scala) for more sample usage. 
+See [the tests](https://github.com/Iterable/iterable-play-utils/blob/master/src/test/scala/com/iterable/play/utils/CaseClassMappingSpec.scala) for more sample usage.
