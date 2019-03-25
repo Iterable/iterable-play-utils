@@ -1,6 +1,6 @@
 package com.iterable.play.utils
 
-import play.api.Logger
+import play.api.Logging
 import play.api.data._
 import play.api.data.format.{Formats, Formatter, JodaFormats}
 import play.api.data.validation.{Constraint, Invalid}
@@ -11,7 +11,7 @@ trait CaseClassMapping[T] extends Mapping[T] {
   def unbindToWsRequest(value: T): Map[String, Seq[String]] = unbind(value).mapValues(Seq(_))
 }
 
-object CaseClassMapping {
+object CaseClassMapping extends Logging {
 
   private def formatterToType[T: TypeTag](t: Formatter[T]) = t -> typeOf[T]
   // TODO - build this by grabbing implicit val's and nullary implicit def's in format/Format
@@ -53,10 +53,10 @@ object CaseClassMapping {
   }
 
   private def isCorrectFormatterOrMapping(tpe: Type, formatterType: Type): Boolean = {
-//    Logger.trace(s"Checking if formatter type $formatterType is the right one for $tpe")
+//    logger.trace(s"Checking if formatter type $formatterType is the right one for $tpe")
     if (typeIsFormatter(formatterType) || typeIsMapping(formatterType)) {
       // get the parameter type of the formatter/mapping
-//      Logger.trace(s"Unwrapping formatter/mapping type $formatterType")
+//      logger.trace(s"Unwrapping formatter/mapping type $formatterType")
       isCorrectFormatterOrMapping(tpe, getParameterType(formatterType).get)
     } else {
       formatterType =:= unwrappedType(tpe)
@@ -101,14 +101,14 @@ object CaseClassMapping {
   // http://stackoverflow.com/questions/13814288/how-to-get-constructor-argument-names-using-scala-macros
   // http://stackoverflow.com/a/24100624
   def mapping[T <: Product: TypeTag]: CaseClassMapping[T] = {
-    Logger.trace(s"Generating CaseClassMapping for ${typeOf[T]}...")
+    logger.trace(s"Generating CaseClassMapping for ${typeOf[T]}...")
     typeOf[T].decls.collectFirst {
       case m: MethodSymbol if m.isPrimaryConstructor => m
     } match {
       case Some(primaryConstructor) =>
-//        Logger.trace(s"Found primary constructor! It's $primaryConstructor, and the params are ${primaryConstructor.paramss}")
+//        logger.trace(s"Found primary constructor! It's $primaryConstructor, and the params are ${primaryConstructor.paramss}")
         val result = CaseClassMappingImpl[T](primaryConstructor)
-        Logger.trace(s"Done generating CaseClassMapping for ${typeOf[T]}")
+        logger.trace(s"Done generating CaseClassMapping for ${typeOf[T]}")
         result
 
       case None =>
@@ -134,21 +134,21 @@ object CaseClassMapping {
 
     // given a Type, search its companion object for an implicit val or nullary def of a mapping of that Type
     private def getMappingFromCompanionOfType(tpe: Type): Option[Mapping[_]] = {
-//      Logger.trace(s"Looking for mapping in companion of $tpe")
+//      logger.trace(s"Looking for mapping in companion of $tpe")
       tpe.typeSymbol.companion match {
         case NoSymbol =>
-//          Logger.trace(s"No companion symbol for type $tpe")
+//          logger.trace(s"No companion symbol for type $tpe")
           None
 
         case companion =>
-//          Logger.trace(s"Found companion symbol $companion for type $tpe")
+//          logger.trace(s"Found companion symbol $companion for type $tpe")
           // use .members, not .declarations; we want to include things that its super class might declare
           val companionTypeSignature = companion.typeSignature
           companionTypeSignature.members.collectFirst {
             // The generated getter is marked as implicit; but the actual underlying val is not implicit! So we check if the getter is implicit
             // In the case of an implicit val, the generated getter is a method; in the case of a nullary def... well it's already a method
             case member: MethodSymbol if member.isImplicit && isFieldForMapping(member.typeSignatureIn(companionTypeSignature), tpe) =>
-              Logger.trace(s"Found a mapping in the companion object of $tpe, it's $member")
+              logger.trace(s"Found a mapping in the companion object of $tpe, it's $member")
               getNullaryFieldFromCompanionObject(companion.asModule, member).asInstanceOf[Mapping[_]]
           }
       }
@@ -159,11 +159,11 @@ object CaseClassMapping {
       val paramName = symbol.name.toString // the name of the parameter
       val realTpe = symbol.typeSignature // the parameter type
       val tpe = unwrappedType(realTpe) // if the parameter is of type Seq/List/Option, unwrap the underlying type
-      Logger.trace(s"Looking for default formatter for type $realTpe (unwrapped $tpe)")
+      logger.trace(s"Looking for default formatter for type $realTpe (unwrapped $tpe)")
       formatters.collectFirst { case (formatter, formatterType) if isCorrectFormatterOrMapping(tpe, formatterType) =>
         generateWrappedMappingForFormatter(paramName, realTpe, formatter)
       }.orElse {
-        Logger.trace(s"Unable to find default formatter for type $tpe; searching for companion object formatters")
+        logger.trace(s"Unable to find default formatter for type $tpe; searching for companion object formatters")
         getMappingFromCompanionOfType(tpe).map { mapping =>
           generateWrappedMappingForMapping(paramName, realTpe, mapping)
         }
@@ -183,12 +183,12 @@ object CaseClassMapping {
     }
 
     private def createInstance(args: Seq[Any]): T = {
-      Logger.trace(s"Creating a ${typeOf[T]} with arguments: $args")
+      logger.trace(s"Creating a ${typeOf[T]} with arguments: $args")
       constructorMirror(args: _*).asInstanceOf[T]
     }
 
     def bind(data: Map[String, String]): Either[Seq[FormError], T] = {
-      Logger.trace(s"Binding to type ${typeOf[T]}: $data")
+      logger.trace(s"Binding to type ${typeOf[T]}: $data")
       val args = mappings.map(_.withPrefix(key).bind(data))
       if (args.forall(_.isRight)) {
         applyConstraints(createInstance(args.map(_.right.get)))

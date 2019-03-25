@@ -10,10 +10,10 @@ developers := List(
   Developer(id = "Iterable", name = "Iterable", email = "engineering@iterable.com", url = url("https://iterable.com"))
 )
 
-scalaVersion := "2.12.6"
+scalaVersion := "2.12.8"
 crossScalaVersions := Seq(scalaVersion.value, "2.11.12")
 
-val PlayVersion = "2.6.13"
+val PlayVersion = "2.7.0"
 
 libraryDependencies ++= Seq(
   // Play! framework

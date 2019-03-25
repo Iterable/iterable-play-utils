@@ -17,6 +17,7 @@ All versions can be found on [maven central](https://mvnrepository.com/artifact/
 
 Version | Scala version | Play! version
 --- | --- | ---
+3.0.0 | 2.12.x/2.11.x | 2.7.x
 2.0.0 | 2.12.x/2.11.x | 2.6.x
 1.1.1 | 2.11.x | 2.5.x
 1.1.0 | 2.11.x | 2.4.x
