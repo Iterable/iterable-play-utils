@@ -13,7 +13,7 @@ developers := List(
 scalaVersion := "2.12.8"
 crossScalaVersions := Seq(scalaVersion.value, "2.11.12")
 
-val PlayVersion = "2.7.0"
+val PlayVersion = "2.7.3"
 
 libraryDependencies ++= Seq(
   // Play! framework
