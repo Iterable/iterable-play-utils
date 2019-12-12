@@ -17,3 +17,6 @@ project/project
 target
 tmp
 .DS_Store
+
+.bloop
+.metals

@@ -1,6 +1,5 @@
 package com.iterable.play.utils
 
-import org.scalatest.mockito.MockitoSugar
 import org.scalatest.MustMatchers
 import org.scalatest.WordSpec
 
@@ -9,7 +8,7 @@ object User {
     implicit val mapping = CaseClassMapping.mapping[User]
 }
 
-class UnbindableToWsRequestSpec extends WordSpec with MustMatchers with MockitoSugar {
+class UnbindableToWsRequestSpec extends WordSpec with MustMatchers {
 
   "UnbindableToWsRequest" should {
     "be able to unbind a case class which has a Mapping" in {

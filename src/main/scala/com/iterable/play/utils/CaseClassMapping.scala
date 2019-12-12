@@ -8,7 +8,7 @@ import play.api.data.validation.{Constraint, Invalid}
 import scala.reflect.runtime.universe._
 
 trait CaseClassMapping[T] extends Mapping[T] {
-  def unbindToWsRequest(value: T): Map[String, Seq[String]] = unbind(value).mapValues(Seq(_))
+  def unbindToWsRequest(value: T): Map[String, Seq[String]] = unbind(value).map { case (k, v) => k -> Seq(v) }
 }
 
 object CaseClassMapping extends Logging {
@@ -191,7 +191,7 @@ object CaseClassMapping extends Logging {
       logger.trace(s"Binding to type ${typeOf[T]}: $data")
       val args = mappings.map(_.withPrefix(key).bind(data))
       if (args.forall(_.isRight)) {
-        applyConstraints(createInstance(args.map(_.right.get)))
+        applyConstraints(createInstance(args.map(_.getOrElse(throw new NoSuchElementException))))
       } else {
         Left(args.collect { case Left(errors) => errors }.flatten)
       }
@@ -200,7 +200,7 @@ object CaseClassMapping extends Logging {
     def unbind(value: T): Map[String, String] = unbindAndValidate(value)._1
 
     def unbindAndValidate(value: T): (Map[String, String], Seq[FormError]) = {
-      val args = mappings.zip(value.productIterator.toIterable).map { case (mapping, field) =>
+      val args = mappings.zip(value.productIterator.toVector).map { case (mapping, field) =>
         mapping.asInstanceOf[Mapping[Any]].withPrefix(key).unbindAndValidate(field)
       }
       val errors = args.flatMap(_._2) ++ collectErrors(value)
