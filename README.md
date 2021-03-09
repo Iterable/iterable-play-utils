@@ -6,10 +6,10 @@ A collection of utilites used by Iterable in Scala Play! projects.
 
 ## Adding to your SBT project
 
-The latest version supports Play 2.6.x. To include it in your dependencies:
+The latest version supports Play 2.8.x. To include it in your dependencies:
 
 ```scala
-libraryDependencies += "com.iterable" %% "iterableplayutils" % "2.0.0"
+libraryDependencies += "com.iterable" %% "iterableplayutils" % "4.0.0"
 ```
 
 All versions can be found on [maven central](https://mvnrepository.com/artifact/com.iterable/iterableplayutils).
@@ -17,7 +17,8 @@ All versions can be found on [maven central](https://mvnrepository.com/artifact/
 
 Version | Scala version | Play! version
 --- | --- | ---
-3.0.0 | 2.12.x/2.11.x | 2.7.x
+4.0.0 | 2.13.x/2.12.x | 2.8.x
+3.0.0 | 2.13.x/2.12.x | 2.7.x
 2.0.0 | 2.12.x/2.11.x | 2.6.x
 1.1.1 | 2.11.x | 2.5.x
 1.1.0 | 2.11.x | 2.4.x
