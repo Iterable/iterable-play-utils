@@ -1,14 +1,14 @@
 package com.iterable.play.utils
 
-import org.scalatest.MustMatchers
-import org.scalatest.WordSpec
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 case class User(name: String, age: Int, email: String, favoriteBands: Seq[String]) extends UnbindableToWsRequest[User]
 object User {
     implicit val mapping = CaseClassMapping.mapping[User]
 }
 
-class UnbindableToWsRequestSpec extends WordSpec with MustMatchers {
+class UnbindableToWsRequestSpec extends AnyWordSpec with Matchers {
 
   "UnbindableToWsRequest" should {
     "be able to unbind a case class which has a Mapping" in {

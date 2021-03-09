@@ -10,20 +10,17 @@ developers := List(
   Developer(id = "Iterable", name = "Iterable", email = "engineering@iterable.com", url = url("https://iterable.com"))
 )
 
-scalaVersion := "2.13.1"
-crossScalaVersions := Seq(scalaVersion.value, "2.12.10")
+scalaVersion := "2.13.5"
+crossScalaVersions := Seq(scalaVersion.value, "2.12.13")
 
-// see https://github.com/scala/bug/issues/11813
-scalacOptions -= "-Wself-implicit"
-
-val PlayVersion = "2.7.4"
+val PlayVersion = "2.8.6"
 
 libraryDependencies ++= Seq(
   // Play! framework
   "com.typesafe.play" %% "play" % PlayVersion,
   "com.typesafe.play" %% "play-joda-forms" % PlayVersion,
   // dependencies for tests
-  "org.scalatest" %% "scalatest" % "3.0.8" % Test
+  "org.scalatest" %% "scalatest" % "3.2.5" % Test
 )
 
 parallelExecution in Test := false
@@ -58,8 +55,8 @@ releaseProcess := Seq[ReleaseStep](
   commitReleaseVersion,
   tagRelease,
   releaseStepCommandAndRemaining("+publishSigned"),
+  releaseStepCommand("sonatypeBundleRelease"),
   setNextVersion,
   commitNextVersion,
-  releaseStepCommand("sonatypeReleaseAll"),
   pushChanges
 )

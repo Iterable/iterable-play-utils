@@ -1,6 +1,7 @@
 package com.iterable.play.utils
 
-import org.scalatest.{MustMatchers, WordSpec}
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.data.validation._
 import play.api.data.{Form, FormError, Mapping}
 
@@ -19,7 +20,7 @@ object Bar {
   implicit val mapping = CaseClassMapping.mapping[Bar]
 }
 
-class CaseClassMappingSpec extends WordSpec with MustMatchers {
+class CaseClassMappingSpec extends AnyWordSpec with Matchers {
   // TODO - it breaks on this, because
   //   scala.ScalaReflectionException: class Bar2 is an inner class, use reflectClass on an InstanceMirror to obtain its ClassMirror
   case class Bar2(firstOne: Int)
