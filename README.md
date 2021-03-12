@@ -1,6 +1,6 @@
 # iterable-play-utils
 
-[![Travis CI](https://travis-ci.org/Iterable/iterable-play-utils.svg?branch=master)](https://travis-ci.org/Iterable/iterable-play-utils) [![Maven](https://img.shields.io/maven-central/v/com.iterable/iterableplayutils_2.12.svg)](https://mvnrepository.com/artifact/com.iterable/iterableplayutils)
+[![Travis CI](https://github.com/iterable/iterable-play-utils/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/iterable/iterable-play-utils/actions/workflows/ci.yml) [![Maven](https://img.shields.io/maven-central/v/com.iterable/iterableplayutils_2.12.svg)](https://mvnrepository.com/artifact/com.iterable/iterableplayutils)
 
 A collection of utilites used by Iterable in Scala Play! projects.
 
@@ -29,10 +29,6 @@ Version | Scala version | Play! version
 See [com.iterable.play.utils.CaseClassMapping](https://github.com/Iterable/iterable-play-utils/blob/master/src/main/scala/com/iterable/play/utils/CaseClassMapping.scala). Uses ***runtime reflection*** to generate form mappings for case classes without all the manual typing.
 
 ***Once again, this uses runtime reflection, not compile-time macros.***
-
-***Please note that this suffers from thread safety issues in Scala 2.10, which is why the build includes `parallelExecution in Test := false`***
-
-***See [the relevant document from Scala](http://docs.scala-lang.org/overviews/reflection/thread-safety.html)***
 
 Suppose you have the following case class:
 ```scala
