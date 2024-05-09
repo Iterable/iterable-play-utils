@@ -14,7 +14,7 @@ jobs:
     name: Build and Test
     strategy:
       matrix:
-        scala: [2.12.13, 2.13.5]
+        scala: [2.13.14]
 
     runs-on: ubuntu-latest
     steps:
@@ -26,7 +26,7 @@ jobs:
       - name: Setup Java and Scala
         uses: olafurpg/setup-scala@v10
         with:
-          java-version: adopt@1.8
+          java-version: adopt@1.11
 
       - name: Cache sbt
         uses: actions/cache@v2

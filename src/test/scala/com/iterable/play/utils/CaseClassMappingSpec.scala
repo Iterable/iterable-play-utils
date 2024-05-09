@@ -7,17 +7,17 @@ import play.api.data.{Form, FormError, Mapping}
 
 case class Baz(pls: String, work: Option[Long])
 object Baz {
-  implicit val mapping = CaseClassMapping.mapping[Baz]
+  implicit val mapping: CaseClassMapping[Baz] = CaseClassMapping.mapping
 }
 
 case class Foo(a: String, omg: Option[Seq[Baz]])
 object Foo {
-  implicit def mapping = CaseClassMapping.mapping[Foo]
+  implicit def mapping: CaseClassMapping[Foo] = CaseClassMapping.mapping
 }
 
 case class Bar(firstOne: Option[List[Long]], secondOne: String, third: Option[Foo], fourth: Option[Int]) extends UnbindableToWsRequest[Bar]
 object Bar {
-  implicit val mapping = CaseClassMapping.mapping[Bar]
+  implicit val mapping: CaseClassMapping[Bar] = CaseClassMapping.mapping
 }
 
 class CaseClassMappingSpec extends AnyWordSpec with Matchers {
@@ -25,7 +25,7 @@ class CaseClassMappingSpec extends AnyWordSpec with Matchers {
   //   scala.ScalaReflectionException: class Bar2 is an inner class, use reflectClass on an InstanceMirror to obtain its ClassMirror
   case class Bar2(firstOne: Int)
   object Bar2 {
-    implicit lazy val mapping = CaseClassMapping.mapping[Bar2]
+    implicit lazy val mapping: CaseClassMapping[Bar2] = CaseClassMapping.mapping
   }
 
   "CaseClassMapping" should {

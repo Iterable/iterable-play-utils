@@ -64,7 +64,7 @@ object CaseClassMapping extends Logging {
   }
 
   private def generateWrappedMappingForFormatter(fieldName: String, tpe: Type, formatter: Formatter[_]): Mapping[_] = {
-    val mapping = FieldMapping("")(formatter.asInstanceOf[Formatter[Any]])
+    @annotation.nowarn val mapping = FieldMapping("")(formatter.asInstanceOf[Formatter[Any]])
     generateWrappedMappingForMapping(fieldName, tpe, mapping)
   }
 

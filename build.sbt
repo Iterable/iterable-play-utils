@@ -10,17 +10,17 @@ developers := List(
   Developer(id = "Iterable", name = "Iterable", email = "engineering@iterable.com", url = url("https://iterable.com"))
 )
 
-scalaVersion := "2.13.5"
-crossScalaVersions := Seq(scalaVersion.value, "2.12.13")
+scalaVersion := "2.13.14"
+crossScalaVersions := Seq(scalaVersion.value)
 
-val PlayVersion = "2.8.6"
+val PlayVersion = "3.0.1"
 
 libraryDependencies ++= Seq(
   // Play! framework
-  "com.typesafe.play" %% "play" % PlayVersion,
-  "com.typesafe.play" %% "play-joda-forms" % PlayVersion,
+  "org.playframework" %% "play" % PlayVersion,
+  "org.playframework" %% "play-joda-forms" % PlayVersion,
   // dependencies for tests
-  "org.scalatest" %% "scalatest" % "3.2.5" % Test
+  "org.scalatest" %% "scalatest" % "3.2.18" % Test
 )
 
 parallelExecution in Test := false
