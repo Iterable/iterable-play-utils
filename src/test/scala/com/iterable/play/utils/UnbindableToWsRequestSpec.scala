@@ -5,7 +5,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 case class User(name: String, age: Int, email: String, favoriteBands: Seq[String]) extends UnbindableToWsRequest[User]
 object User {
-    implicit val mapping = CaseClassMapping.mapping[User]
+    implicit val mapping: CaseClassMapping[User] = CaseClassMapping.mapping
 }
 
 class UnbindableToWsRequestSpec extends AnyWordSpec with Matchers {
