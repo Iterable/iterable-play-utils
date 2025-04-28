@@ -7,9 +7,6 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    env:
-      JAVA_OPTS: -Xms2048M -Xmx2048M -Xss6M -XX:ReservedCodeCacheSize=256M -Dfile.encoding=UTF-8
-      JVM_OPTS: -Xms2048M -Xmx2048M -Xss6M -XX:ReservedCodeCacheSize=256M -Dfile.encoding=UTF-8
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -22,6 +19,9 @@ jobs:
           distribution: temurin
           java-version: 11
           cache: sbt
+
+      - name: Install sbt
+        uses: sbt/setup-sbt@26ab4b0fa1c47fa62fc1f6e51823a658fb6c760c # v1.1.7
 
       - run: sbt ci-release
         env:
