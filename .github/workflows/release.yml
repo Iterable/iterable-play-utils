@@ -1,0 +1,31 @@
+name: Release
+on:
+  push:
+    branches: [master]
+    tags: ["*"]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      JAVA_OPTS: -Xms2048M -Xmx2048M -Xss6M -XX:ReservedCodeCacheSize=256M -Dfile.encoding=UTF-8
+      JVM_OPTS: -Xms2048M -Xmx2048M -Xss6M -XX:ReservedCodeCacheSize=256M -Dfile.encoding=UTF-8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java and Scala
+        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # 4.7.1
+        with:
+          distribution: temurin
+          java-version: 11
+          cache: sbt
+
+      - run: sbt ci-release
+        env:
+          PGP_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          PGP_SECRET: ${{ secrets.GPG_PRIVATE_KEY }}
+          SONATYPE_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          SONATYPE_USERNAME: ${{ secrets.OSSRH_USERNAME }}

@@ -22,3 +22,4 @@ tmp
 .metals
 metals.sbt
 .vscode
+.bsp
