@@ -4,6 +4,8 @@
 
 A collection of utilites used by Iterable in Scala Play! projects.
 
+This is just a test
+
 ## Adding to your SBT project
 
 The latest version supports Play 2.8.x. To include it in your dependencies:
