@@ -27,5 +27,5 @@ jobs:
         env:
           PGP_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
           PGP_SECRET: ${{ secrets.GPG_PRIVATE_KEY }}
-          SONATYPE_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
-          SONATYPE_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}

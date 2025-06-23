@@ -38,3 +38,10 @@ Test / tpolecatExcludeOptions += ScalacOptions.warnNonUnitStatement
 Test / parallelExecution := false
 Test / publishArtifact := false
 pomIncludeRepository := (_ => false)
+
+// Sonatype Central publishing configuration
+ThisBuild / publishTo := {
+  val centralSnapshots = "https://central.sonatype.com/repository/maven-snapshots/"
+  if (isSnapshot.value) Some("central-snapshots" at centralSnapshots)
+  else localStaging.value
+}
