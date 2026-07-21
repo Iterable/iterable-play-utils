@@ -1,0 +1,184 @@
+name: "Code Analysis"
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+  schedule:
+    - cron: '0 0 * * 1' # Runs every Monday at midnight, this is to ensure that there is at least 1 scan every 7 days.
+
+  workflow_dispatch:
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze_scala:
+    name: Analyze Scala
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+      id-token: write
+      checks: read
+      pull-requests: write
+
+    container:
+      # A Docker image with Semgrep installed. Do not change this.
+      image: semgrep/semgrep
+
+    # Skip any PR created by dependabot to avoid permission issues:
+    if: (github.actor != 'dependabot[bot]')
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: 'false'
+
+      - name: Fetch forked ruleset
+        uses: actions/checkout@v4
+        with:
+          repository: 'Iterable/semgrep-rules'
+          path: .scala-security
+          sparse-checkout: 'scala'
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Semgrep
+        run: semgrep scan --config .scala-security/scala --sarif --output semgrep.sarif
+
+      - name: Upload SARIF results to GitHub Code Scanning
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: semgrep.sarif
+          path: semgrep.sarif
+
+  triage_sarif_file:
+    name: Triage SARIF
+    runs-on: gha-runner-bedrock
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+      id-token: write
+      checks: read
+      pull-requests: write
+    needs: analyze_scala
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: 'false'
+          fetch-depth: '0'
+
+      - name: Download SARIF artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: semgrep.sarif
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Extract Pod Identity Credentials
+        shell: bash
+        run: |
+          echo "Checking Pod Identity environment variables..."        
+          if [ -n "$AWS_CONTAINER_CREDENTIALS_FULL_URI" ] && [ -n "$AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE" ]; then
+          echo "Pod Identity detected - fetching credentials..."
+
+          # Read the authorization token
+          TOKEN=$(cat "$AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE")
+
+          # Fetch credentials from the Pod Identity agent
+          CREDS=$(curl -s -f -H "Authorization: $TOKEN" "$AWS_CONTAINER_CREDENTIALS_FULL_URI" || exit 1)
+          echo "$CREDS" | jq -e '.AccessKeyId' > /dev/null || exit 1
+
+          echo "Credentials response received"
+
+          # Extract credentials using jq
+          ACCESS_KEY=$(echo "$CREDS" | jq -r '.AccessKeyId')
+          SECRET_KEY=$(echo "$CREDS" | jq -r '.SecretAccessKey')
+          SESSION_TOKEN=$(echo "$CREDS" | jq -r '.Token')
+          echo "::add-mask::$ACCESS_KEY"
+          echo "::add-mask::$SECRET_KEY"
+          echo "::add-mask::$SESSION_TOKEN"
+
+          # Set as GitHub environment variables
+          {
+           echo "AWS_ACCESS_KEY_ID=$ACCESS_KEY"
+           echo "AWS_SECRET_ACCESS_KEY=$SECRET_KEY"
+           echo "AWS_SESSION_TOKEN=$SESSION_TOKEN"
+           echo "AWS_DEFAULT_REGION=us-west-2"
+           echo "AWS_REGION=us-west-2"
+          } >> "$GITHUB_ENV"
+
+          echo "Pod Identity credentials extracted successfully"
+          else
+          echo "Pod Identity environment variables not found"
+          fi
+
+      - name: Install Claude Code
+        env:
+          CLAUDE_CODE_USE_NODE: "true" # Forces it to skip downloading/using Bun
+        run: |
+          npm install -g --ignore-scripts @anthropic-ai/claude-code@2.1.202
+
+      - name: Run Triage
+        uses: anthropics/claude-code-action@6867bb3ab0b2c0a10629b6823e457347e74ad6d2 # v1.0.43
+        with:
+          use_bedrock: "true"
+          use_sticky_comment: "true"
+          additional_permissions: "actions: read"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          claude_args: |
+            --model us.anthropic.claude-opus-4-5-20251101-v1:0
+            --max-turns 45
+          settings: |
+            {
+              "CLAUDE_CODE_ENABLE_TELEMETRY": "0"
+            }
+          prompt: |
+            You are an expert AppSec Triage Agent. Your job is to analyze a Semgrep finding, review the surrounding source code, and calculate a strict "True Positive Confidence Score" (0.0 to 1.0). The file is semgrep.sarif.
+
+            Analyze the input based on these strict evaluation buckets:
+            1. Data Flow (0.0 - 0.35): Is untrusted input reachable?
+            2. Mitigations (0.0 - 0.25): Deduct points if validation, escaping, or defensive frameworks are used.
+            3. Reachability (0.0 - 0.20): Is this live production code, an active endpoint, or a mock/test file?
+            4. Rule Fit (0.0 - 0.20): Is the finding a genuine logic flaw or a superficial/syntactic match?
+
+            CRITICAL FILTERING RULE:
+              - If the calculated `total_confidence_score` is LESS THAN 0.80 (80%), you MUST set the `triage_decision` to "REMOVE".
+              - If the `total_confidence_score` is 0.80 or HIGHER, evaluate whether it is a "TRUE_POSITIVE".
+
+            You MUST return your answer in the following JSON format:
+              {
+                "analysis": {
+                  "data_flow_notes": "string",
+                  "mitigation_notes": "string",
+                  "reachability_notes": "string"
+                },
+                "scores": {
+                  "data_flow": 0.00,
+                  "mitigations": 0.00,
+                  "reachability": 0.00,
+                  "rule_fit": 0.00
+                },
+                "total_confidence_score": 0.00,
+                "triage_decision": "TRUE_POSITIVE" | "REMOVE"
+              }
+
+      - name: Upload SARIF results to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
