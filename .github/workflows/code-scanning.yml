@@ -1,0 +1,59 @@
+name: "Code Analysis"
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+  schedule:
+    - cron: '0 0 * * 1' # Runs every Monday at midnight, this is to ensure that there is at least 1 scan every 7 days.
+
+  workflow_dispatch:
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze_scala:
+    name: Analyze Scala
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+      id-token: write
+      checks: read
+      pull-requests: write
+
+    container:
+      # A Docker image with Semgrep installed. Do not change this.
+      image: semgrep/semgrep
+
+    # Skip any PR created by dependabot to avoid permission issues:
+    if: (github.actor != 'dependabot[bot]')
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: 'false'
+
+      - name: Fetch forked ruleset
+        uses: actions/checkout@v4
+        with:
+          repository: 'Iterable/semgrep-rules'
+          path: .scala-security
+          sparse-checkout: 'scala'
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Semgrep
+        run: semgrep scan --config .scala-security/scala --sarif --output semgrep.sarif
+
+      - name: Upload SARIF results to GitHub Code Scanning
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: semgrep.sarif
+          path: semgrep.sarif
